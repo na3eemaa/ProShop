@@ -1,36 +1,54 @@
-import { useEffect, useState } from 'react';
-import { Row, Col } from 'react-bootstrap';
-import Product from '../components/Product';
-import axios from 'axios';
+import { Row, Col } from "react-bootstrap";
+import { useParams, Link } from "react-router-dom";
+import Product from "../components/Product";
+import Loader from "../components/Loader";
+import Message from "../components/Message";
+import Paginate from "../components/Paginate";
+import { useGetProductsQuery } from "../slices/productApiSlice";
+import ProductCarousel from "../components/ProductCarousel";
 
 const HomeScreen = () => {
-  const [products, setProducts] = useState([]);
+  const { pageNumber, keyword } = useParams();
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const { data } = await axios.get('/api/products');
-        setProducts(data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    };
-    fetchProducts();
-  }, []);
+  const { data, isLoading, error } = useGetProductsQuery(
+    { keyword, pageNumber },
+    { refetchOnMountOrArgChange: true }
+  );
 
   return (
     <>
-      <h1>Latest Products</h1>
-      {products.length === 0 ? (
-        <p>No products available.</p>
+      {!keyword ? (
+        <ProductCarousel />
       ) : (
-        <Row>
-          {products.map((product) => (
-            <Col key={product._id} sm={12} md={6} lg={4} xl={3}>
-              <Product product={product} />
-            </Col>
-          ))}
-        </Row>
+        <Link to="/" className="btn btn-light mb-4">
+          Go Back
+        </Link>
+      )}
+
+      {isLoading ? (
+        <Loader />
+      ) : error ? (
+        <Message variant="danger">
+          {error?.data?.message ||
+            error?.error?.toString() ||
+            JSON.stringify(error)}
+        </Message>
+      ) : (
+        <>
+          <h1>Latest Products</h1>
+          <Row>
+            {data?.products?.map((product) => (
+              <Col key={product._id} sm={12} md={6} lg={4} xl={3}>
+                <Product product={product} />
+              </Col>
+            ))}
+          </Row>
+          <Paginate
+            pages={data?.pages}
+            page={data?.page}
+            keyword={keyword ? keyword : ""}
+          />
+        </>
       )}
     </>
   );
